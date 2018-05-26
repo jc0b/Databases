@@ -1,0 +1,35 @@
+sudo: required
+dist: trusty
+before_install:
+- sudo apt-get -qq update && sudo apt-get install -y --no-install-recommends texlive-fonts-recommended
+  texlive-latex-extra texlive-fonts-extra dvipng texlive-latex-recommended
+script:
+- mkdir _build
+- pdflatex -interaction=nonstopmode  -output-directory _build tex/main.tex
+branches:
+  only: 
+    master
+
+before_deploy:
+  - git config --local user.name "Travis CI"
+  - git config --local user.email "travis@travis-ci.org"
+  - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+deploy:
+  provider: releases
+  api_key:
+    secure: jBjygvUhTPDCJypKHvpKe6QJxt5hECVoJa4u7OGWNyyNjjIggCraOgGVpN4di1vvDirnrZXJn8IL819pESk3CsTbq/ZtLymHgOQWpYZYiBNj3jK6FMA01Gztg6eAnzdVvHekXxzXgTZiAdjTIcnJm3noYxswgPXKVKYEz0yGJBj/5wffQSzgwIzkGghWWPUiK30T1yrbjsGcWxNSwM3hX/oGLZci8eANtvruOYqtlS1CvdffUFaX18FQxKRAUG+ooU23PJ5gikmJMx6awZgGUd+pNITdyQifl15oHRMau+lQty0OqnF26p0dmyTRgBeKmIj0s850hRJlIPrB4PcNU6r6VwHbJDgsqBgoGxXMjUYlsYRINicdAmTxXAozko6dPZ1LYfQQBsIoQExFap91KgCKH5cdVBx5NTawPEoOTnRtV4ZMUQCPwbmze/A6HHsx9puS0HIX2NqtXgoy+1EoFN+6tA/Ms2Wwhb8ivscPvam+7xCayMFXiwSFTcF1p1Vy8Lt20dlQn0tTVCXMoAiafnKNoT3NvAMenuKP3DoIQabez8QGjuE3oFlkofRE2gJrT0hFm7QfBHPsu1tsrWzeuqTg5BcKgvzKwwaNBaxnmKBuzFg4MVcc1pPI2tTliFU/ADKtJ139zvyizjILdVYeGjuziqmwaZCMFNBA154UJy8=
+  file: _build/main.pdf
+  skip_cleanup: true
+  on:
+    repo: jc0b/Databases
+    tags: false
+
+
+after_success:
+- wget https://raw.githubusercontent.com/k3rn31p4nic/travis-ci-discord-webhook/master/send.sh
+- chmod +x send.sh
+- "./send.sh success $WEBHOOK_URL"
+after_failure:
+- wget https://raw.githubusercontent.com/k3rn31p4nic/travis-ci-discord-webhook/master/send.sh
+- chmod +x send.sh
+- "./send.sh failure $WEBHOOK_URL"
