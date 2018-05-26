@@ -2,6 +2,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{float}
+\usepackage{graphicx}
+\graphicspath{{images/}{../images/}}
 
 
 \title{Databases Summary 2018}
@@ -83,8 +85,126 @@ CREATE TABLE EXERCISES (CAT    CHAR(1),
 A database is intended to represent a \textbf{subset} of the real world. It is \textbf{not} meant to represent every conceivable state of the real world, as there are infinitely many states the world could be in. This means that we intend to reduce the number of states that the database can be in, removing meaningless and or illegal states.
 \\We restrict the set of possible database sets using \textbf{Integrity Contraints (IC)}. With ICs, we hope to only allow images of \underline{possible} real world scenarios. We specify our ICs as part of the database schema.
 \\The DBMS will \textbf{refuse any update} which would lead to a database state that violates any of the constraints.
+\\So why do we use constraints?
+\begin{itemize}
+    \item They offer some protection against data input errors
+    \item They help document knowledge about the (desired) possible database states
+    \item Enforcement of law/company standards for storing data
+    \item Protects against inconsistency when data is stored redundantly, meaning multiple copies of the data should follow the same rules or be invalid
+    \item \textbf{Queries/application programs} are easier to write if the author can assume that the data must fulfil certain properties specified in the constraints.
+\end{itemize}
+
+\subsection*{Keys}
+A key of a relation \textit{R} is an attribute \textit{A} that \textbf{uniquely identifies} the tuples in \textit{R}.
+\\\textbf{There is a unique key for every tuple in \textit{R}}. If $t.A = u.A$, then $t = u$.
+\\For example, in the table below, if \texttt{SID} is the key for the relation (table) \texttt{STUDENTS}, we can say that this database state is illegal, as the key \texttt{101} occurs twice.
+\begin{table}[H]
+\begin{center}
+ \begin{tabular}{| c | c | c | c |} 
+ \hline
+ \underline{\texttt{SID}} & \texttt{FIRST} & \texttt{LAST} & \texttt{EMAIL} \\ [0.5ex] 
+ \hline
+ 101 & Ann & Smith & ... \\
+ 101 & Michael & Jones & (null) \\
+ 103 & Michael & Turner & ... \\
+ \hline
+\end{tabular}
+\end{center}
+\caption{\texttt{STUDENTS}}
+\end{table}
+A DBMS will refuse insertion of any tuples that contain duplicate key values.
+\\\textbf{Keys are constraints}. We must also be careful when choosing our keys. In the above example, we \textit{could} use \texttt{LAST} as a key, but that would be too restrictive. For example, we couldn't then have another student with the last name Smith.
+
+\subsubsection*{Composite Keys}
+We can use more than one attribute as a key, so long as together they form a \textbf{unique combination} for each tuple. (It is forbidden that, if attributes \textit{A} and \textit{B} form a composite key, there are two or more tuples that agree in both attributes \textit{A} \textbf{and} \textit{B})
+\\A key constraint becomes \textbf{weaker} (less restrictive, more DB states are valid) when more attributes are added to the key. More attributes = more combinations of attributes = more database states.
+\\Minimality of keys
+\begin{itemize}
+    \item If attribute \textit{A} has been declared as a key for relation \textit{R}, then \textbf{any superset} \textit{K} of attributes that includes \textit{A} will automatically have the unique identification property. \textit{K} is also known as a \textbf{superkey}.
+    \item the usual definition of keys requres that the set of key attributes ${A_1, ..., A_k}$ is \textbf{minimal}. This means that no $A_i$ may be removed from the set without destroying the unique identification property of the relation.
+\end{itemize}
+
+Multiple keys:
+\\relations can have more than one key. They can also have \textbf{more than one minimal key}.
+\\In the relational model, one key is designated as a \textbf{Primary Key}. A primary key \textbf{cannot be NULL}. All other keys are referred to as \textbf{alternate}, \textbf{secondary} or \textbf{candidate keys}.
+\\It is good design practice to define a primary key that consists of a \textbf{single, simple attribute} and \textbf{never updating that key definition}.
+This is good practice, as if you were to add a new attribute to your key or change the attribute then you would have to check your whole relation to make sure none of the data you \textit{already have} violates this new constraint. Also, you may face data loss if your relation violates the new constraint.
+\\\textbf{\textit{Just don't change your constraints once you've got data}}
+\\We show primary keys in relation schema specifications by underlining the attribute that the key uses, as already done in this document.
+\\It's also common practice to reorder attributes in a relation so the key attributes come first in the attribute order.
+
+\subsubsection*{Foreign keys}
+If we have two relations that share some values, for example a table of students and a table of their results, we can use foreign keys. In the case of the example above, we may have a primary key on the \texttt{students} table. This can also be a foreign key for the \texttt{results} table, as we can query the results of a given student.
+%this explanation is weak af i don't properly know how to explain this
+\begin{itemize}
+    \item A table with a composite key must be referenced with a \textbf{composite foreign key} that has the same number of attributes and the same domains. It is \textbf{not} required that the corresponding attributes have identical names.
+    \item Only keys may be referenced (either primary or secondary)
+    \\references to non-key attributes are not permitted, referenced attributes must form a \textbf{candidate key}.
+    \item Foreign keys are \textbf{not} keys themselves
+    \item Unless a \verb|NOT NULL| constraint is present, foreign keys \textbf{may be null}.
+\end{itemize}
+
+We can denote foreign keys as below:
+\\\texttt{RESULTS (\underline{SID} $\to$ STUDENTS, (\underline{CAT}, \underline{ENO}) $\to$ EXERCISES, POINTS)}
+\\\texttt{STUDENTS (\underline{SID}, FIRST, LAST, EMAIL)}
+\\\texttt{EXERCISES (\underline{CAT}, \underline{ENO}, TOPIC, MAXPT)}
+\\[1ex]
+\\Foreign keys are denoted with arrows ($\to$) in the relation schema, and composite keys appear in parentheses. Since only the primary key is typically referenced, it is sufficient to list the target relation only when writing foreign keys.
+\\We must also pay special attention when updating foreign keys. Once a foreign key has been declared in a DB schema, the following update operations will violate the foreign key constraint:
+\begin{itemize}
+    \item \textbf{Insertion} into table \texttt{RESULTS} without a matching tuple in table \texttt{STUDENTS}.
+    \begin{itemize}
+        \item The DBMS will \textbf{reject} such an insertion.
+    \end{itemize}
+    \item \textbf{Deletion} from table \texttt{STUDENTS} when the deleted tuple is still referenced in \texttt{RESULTS}.
+    \begin{itemize}
+        \item The DBMS will \textbf{reject} the deletion, \underline{or}
+        \item The deletion \textbf{cascades}: tuples in \texttt{RESULTS} that reference the deleted tuple will also be deleted, \underline{or}
+        \item The foreign key is \textbf{set to null} in \texttt{RESULTS}
+    \end{itemize}
+\end{itemize}
+\subsection*{Relational Algebra}
+\begin{itemize}
+    \item Relational Algebra $\neq$ SQL
+    \begin{itemize}
+        \item Null values are usually excluded in RA, except when operations like \textbf{outer join} are defined
+        \item RA treats relations as \textbf{sets}, so duplicate tuples \textbf{will never occur} in the input/output relations of an RA operator
+        \begin{itemize}
+            \item In SQL, relations are \textbf{multisets}, and may contain duplicates. We have to be explicit about duplicate elimination in SQL, using \verb|SELECT DISTINCT|
+        \end{itemize}
+    \end{itemize}
+    \item RA is not visible to the user on any commercial DBMS
+    \item DBMS use RA to \textbf{represent queries internally}, for \textbf{query optimization} and \textbf{execution}.
+\end{itemize}
+
+\subsubsection*{Selection}
+The \textbf{selection} $\sigma_\varphi$ selects a subset of the tuples of a relation, namely those satisfying predicate $\varphi$. Selections act like a filter on a set.
+\\(aka, selection selects rows that satisfy a given condition $\varphi$).
+\subsubsection*{Projection}
+The \textbf{projection} $\pi_L$ eliminates all attributes (columns) of the input relation \textbf{except} those mentioned in the \textbf{projection list} $L$. 
+\\(aka, projection selects columns that specified by $L$).
 
 
+\subsubsection*{Chaining operations}
+Because the result of any RA operation is another relation, we can use this intermediate result as the input of another RA relation (thereby chaining them)
+\\For example, we can retrieve the exercises solved by a student with ID of 102 using the following RA query:
+$$\pi_{CAT,ENO}(\sigma_{SID=102}(RESULTS))$$
+This is the same as doing
+$$S102\leftarrow\sigma_{SID=102}(RESULTS)$$
+$$\pi_{CAT,ENO}(S102)$$
+which stores the intermediate result in a \textbf{named temporary relation}.
+
+\\Composite RA expressions are typically depicted as \textbf{operator trees} (like parse trees in Logic)
+\\Computation proceeds \textbf{bottom-up} in these trees, with the evaluation order of sibling branches not being pre-determined.
+
+\subsubsection*{Cartesian Product}
+In general, queries need to combine information from several tables. In RA, we formulate such queries using $\times$, the \textbf{Cartesian Product}.
+\\The \textbf{Cartesian product} $R \times S$ of two relations $R,S$ is computed by concatenating each tuple $t\in R$ with each tuple $u \in S$
+\\The Cartesian product can only be applied if $R, S$ \textbf{do not share any attribute names}. It must be noted that, because we have projection $\pi$, this isn't much of a restriction.
+\begin{center}
+\includegraphics[width= 250pt]{tex/lecture2/cartesianproduct.png}
+\end{center}
+\subsubsection{Join}
 
 
 
